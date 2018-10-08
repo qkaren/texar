@@ -93,6 +93,7 @@ def main():
     train_op, infer_outputs = build_model(batch, train_data)
 
     saver = tf.train.Saver(max_to_keep=5)
+    saver_best = tf.train.Saver(max_to_keep=1)
 
     def _train_epoch(sess):
         data_iterator.switch_to_train_data(sess)
@@ -144,11 +145,15 @@ def main():
         sess.run(tf.local_variables_initializer())
         sess.run(tf.tables_initializer())
 
+        saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
+
         best_val_bleu = -1.
         for i in range(config_data.num_epochs):
             _train_epoch(sess)
 
             val_bleu = _eval_epoch(sess, 'val')
+            if val_bleu > best_val_bleu:
+                saver_best.save(sess, './best_model')
             best_val_bleu = max(best_val_bleu, val_bleu)
             print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
                 i, val_bleu, best_val_bleu))
@@ -158,9 +163,7 @@ def main():
 
             print('=' * 50)
 
-        saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
-        test_bleu = _eval_epoch(sess, 'test')
-        print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
+
 
 if __name__ == '__main__':
     main()
