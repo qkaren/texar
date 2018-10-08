@@ -92,6 +92,8 @@ def main():
 
     train_op, infer_outputs = build_model(batch, train_data)
 
+    saver = tf.train.Saver(max_to_keep=5)
+
     def _train_epoch(sess):
         data_iterator.switch_to_train_data(sess)
 
@@ -133,7 +135,7 @@ def main():
                     refs.append([ref])
             except tf.errors.OutOfRangeError:
                 break
-
+        saver.save(sess, './checkpoint/')
         return tx.evals.corpus_bleu_moses(list_of_references=refs,
                                           hypotheses=hypos)
 
@@ -156,6 +158,9 @@ def main():
 
             print('=' * 50)
 
+        saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
+        test_bleu = _eval_epoch(sess, 'test')
+        print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
 
 if __name__ == '__main__':
     main()
