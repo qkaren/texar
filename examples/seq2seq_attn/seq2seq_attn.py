@@ -108,7 +108,7 @@ def main():
             except tf.errors.OutOfRangeError:
                 break
 
-    def _eval_epoch(sess, mode):
+    def _eval_epoch(sess, mode, epoch):
         if mode == 'val':
             data_iterator.switch_to_val_data(sess)
         else:
@@ -130,7 +130,12 @@ def main():
                 target_texts = tx.utils.strip_special_tokens(target_texts_ori)
                 output_texts = tx.utils.map_ids_to_strs(
                     ids=output_ids, vocab=val_data.target_vocab)
-
+                
+                tx.utils.write_paired_text(
+                     target_texts, output_texts,
+                     os.path.join(config.sample_path, 'val.%d'%epoch),
+                     append=True, mode='h')
+                                           
                 for hypo, ref in zip(output_texts, target_texts):
                     hypos.append(hypo)
                     refs.append([ref])
@@ -151,7 +156,7 @@ def main():
         for i in range(config_data.num_epochs):
             _train_epoch(sess)
 
-            val_bleu = _eval_epoch(sess, 'val')
+            val_bleu = _eval_epoch(sess, 'val', i)
             if val_bleu > best_val_bleu:
                 saver_best.save(sess, './best_model')
             best_val_bleu = max(best_val_bleu, val_bleu)
