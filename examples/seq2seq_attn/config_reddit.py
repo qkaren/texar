@@ -2,7 +2,7 @@
 num_epochs = 100
 display = 100
 
-data_path = '../../KB_dialog/tf_data'
+data_path = '../transformer/data/tf_data'
 source_vocab_file = data_path + '/vocab.txt'
 target_vocab_file = data_path + '/vocab.txt'
 
@@ -24,11 +24,11 @@ val = {
     'batch_size': 32,
     'shuffle': False,
     'source_dataset': {
-        "files": data_path + '/valid.query',
+        "files": data_path + '/dev.query',
         'vocab_file': source_vocab_file,
     },
     'target_dataset': {
-        'files': data_path + '/valid.response',
+        'files': data_path + '/dev.response',
         'vocab_file': target_vocab_file,
     }
 }

@@ -22,6 +22,9 @@ from __future__ import division
 import importlib
 import tensorflow as tf
 import texar as tx
+import os
+
+from texar.utils import str_join
 
 flags = tf.flags
 
@@ -63,7 +66,8 @@ def build_model(batch, train_data):
         tx.losses.sequence_sparse_softmax_cross_entropy(
             labels=batch['target_text_ids'][:, 1:],
             logits=training_outputs.logits,
-            sequence_length=batch['target_length'] - 1))
+            sequence_length=batch['target_length'] - 1),
+        hparams=config_model.opt)
 
     start_tokens = tf.ones_like(batch['target_length']) * \
             train_data.target_vocab.bos_token_id
@@ -128,12 +132,15 @@ def main():
                     sess.run(fetches, feed_dict=feed_dict)
 
                 target_texts = tx.utils.strip_special_tokens(target_texts_ori)
+                target_texts = str_join(target_texts)
                 output_texts = tx.utils.map_ids_to_strs(
                     ids=output_ids, vocab=val_data.target_vocab)
+                output_texts = str_join(output_texts)
                 
-                tx.utils.write_paired_text(
+                if epoch > -1:
+                    tx.utils.write_paired_text(
                      target_texts, output_texts,
-                     os.path.join(config.sample_path, 'val.%d'%epoch),
+                     os.path.join('./checkpoint/output', 'val.%d'%epoch),
                      append=True, mode='h')
                                            
                 for hypo, ref in zip(output_texts, target_texts):
@@ -149,21 +156,21 @@ def main():
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
         sess.run(tf.tables_initializer())
-
-        saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
+        
+        if not os.listdir('./checkpoint/'):
+            saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
 
         best_val_bleu = -1.
         for i in range(config_data.num_epochs):
             _train_epoch(sess)
-
             val_bleu = _eval_epoch(sess, 'val', i)
             if val_bleu > best_val_bleu:
-                saver_best.save(sess, './best_model')
+                saver_best.save(sess, './best_model/')
             best_val_bleu = max(best_val_bleu, val_bleu)
             print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
                 i, val_bleu, best_val_bleu))
 
-            test_bleu = _eval_epoch(sess, 'test')
+            test_bleu = _eval_epoch(sess, 'test',-1)
             print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
 
             print('=' * 50)

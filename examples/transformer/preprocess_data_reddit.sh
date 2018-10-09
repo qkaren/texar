@@ -45,7 +45,7 @@ valid_src=$data/dev.${src_language}
 valid_tgt=$data/dev.${tgt_language}
 test_src=$data/test.${src_language}
 test_tgt=$data/test.${tgt_language}
-vocab_size=50000:
+vocab_size=50000
 
 #====== EXPERIMENT BEGIN ======
 echo "Output dir = $out"
@@ -81,5 +81,8 @@ python ${TF}/utils/preprocess.py -i ${out}/data \
     --src ${src_language}.${encoder} \
     --tgt ${tgt_language}.${encoder} \
     --save_data processed. \
-    --max_seq_length=70 \
-    --pre_encoding=${encoder}
+    --max_seq_length=50000 \
+    --pre_encoding=${encoder} \
+    --source-vocab 50000 \
+    --target-vocab 50000 \
+

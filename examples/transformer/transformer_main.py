@@ -223,6 +223,8 @@ def main():
             random_shuffler=data.iterator.RandomShuffler())
 
         for _, train_batch in enumerate(train_iter):
+            if len(train_batch) == 0:
+                continue
             in_arrays = data_utils.seq2seq_pad_concat_convert(train_batch)
             feed_dict = {
                 encoder_input: in_arrays[0],
