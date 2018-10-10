@@ -81,7 +81,7 @@ python ${TF}/utils/preprocess.py -i ${out}/data \
     --src ${src_language}.${encoder} \
     --tgt ${tgt_language}.${encoder} \
     --save_data processed. \
-    --max_seq_length=50000 \
+    --max_seq_length=500 \
     --pre_encoding=${encoder} \
     --source-vocab 50000 \
     --target-vocab 50000 \

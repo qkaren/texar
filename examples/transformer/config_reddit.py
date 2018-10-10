@@ -1,5 +1,5 @@
-batch_size = 8
-test_batch_size = 8
+batch_size = 256
+test_batch_size = 64
 
 max_train_epoch = 10
 display_steps = 200
