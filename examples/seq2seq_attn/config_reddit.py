@@ -2,7 +2,7 @@
 num_epochs = 100
 display = 100
 
-#data_path = '../transformer/data/tf_data'
+data_path = '../transformer/data/tf_data'
 #
 #data_path = '/home/hzt/qin/msr_texar/data/'
 data_path = '/space/hzt/msr_dialog/data/'
