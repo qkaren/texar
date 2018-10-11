@@ -162,7 +162,9 @@ def main():
                     refs.append([ref])
             except tf.errors.OutOfRangeError:
                 break
-        saver.save(sess, './checkpoint/')
+
+        saver.save(sess, './checkpoint/ckpt', global_step=epoch)
+
         return tx.evals.corpus_bleu_moses(list_of_references=refs,
                                           hypotheses=hypos)
 
@@ -171,20 +173,21 @@ def main():
         sess.run(tf.local_variables_initializer())
         sess.run(tf.tables_initializer())
 
-        if tf.train.latest_checkpoint('./checkpoint/'):
-            saver.restore(sess, tf.train.latest_checkpoint('./checkpoint/'))
+        latest_ckpt = tf.train.latest_checkpoint('./checkpoint/')
+        if latest_ckpt:
+            print('Loading latest checkpoint: {}'.format(latest_ckpt))
+            saver.restore(sess, latest_ckpt)
 
         best_val_bleu = -1.
         for i in range(config_data.num_epochs):
-            _train_epoch(sess)
+            #_train_epoch(sess)
 
-            if i % 5 == 0:
-                val_bleu = _eval_epoch(sess, 'val', i)
-                if val_bleu > best_val_bleu:
-                    saver_best.save(sess, './best_model/')
-                best_val_bleu = max(best_val_bleu, val_bleu)
-                print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
-                    i, val_bleu, best_val_bleu))
+            val_bleu = _eval_epoch(sess, 'val', i)
+            if val_bleu > best_val_bleu:
+                saver_best.save(sess, './best_model/ckpt', global_step=i)
+            best_val_bleu = max(best_val_bleu, val_bleu)
+            print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
+                i, val_bleu, best_val_bleu))
 
             #test_bleu = _eval_epoch(sess, 'test', -1)
             #print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
