@@ -1,8 +1,9 @@
 
 num_epochs = 100
-display = 100
+display = 50 #100
 
-data_path = '../transformer/data/tf_data'
+#data_path = '../transformer/data/tf_data'
+data_path = '/home/hzt/qin/msr_texar/data_small/'
 source_vocab_file = data_path + '/vocab.txt'
 target_vocab_file = data_path + '/vocab.txt'
 
@@ -15,7 +16,7 @@ train = {
         'max_seq_length': 50
     },
     'target_dataset': {
-        'files': data_path + '/train.response',
+        'files': data_path + '/train.query', #'/train.response',
         'vocab_file': target_vocab_file,
         'max_seq_length': 50
     }
@@ -28,7 +29,7 @@ val = {
         'vocab_file': source_vocab_file,
     },
     'target_dataset': {
-        'files': data_path + '/dev.response',
+        'files': data_path + 'dev.query', #'/dev.response',
         'vocab_file': target_vocab_file,
     }
 }

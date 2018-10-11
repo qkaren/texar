@@ -131,18 +131,23 @@ def main():
                 target_texts_ori, output_ids = \
                     sess.run(fetches, feed_dict=feed_dict)
 
+
+                #print(output_ids)
+                #print(infer_outputs.predicted_ids)
+
                 target_texts = tx.utils.strip_special_tokens(target_texts_ori)
                 target_texts = str_join(target_texts)
                 output_texts = tx.utils.map_ids_to_strs(
                     ids=output_ids, vocab=val_data.target_vocab)
-                output_texts = str_join(output_texts)
-                
+                #output_texts = str_join(output_texts)
+
                 if epoch > -1:
                     tx.utils.write_paired_text(
-                     target_texts, output_texts,
-                     os.path.join('./checkpoint/output', 'val.%d'%epoch),
-                     append=True, mode='h')
-                                           
+                        target_texts, output_texts,
+                        os.path.join('./checkpoint/output', 'val.%d'%epoch),
+                        append=True,
+                        mode='h')
+
                 for hypo, ref in zip(output_texts, target_texts):
                     hypos.append(hypo)
                     refs.append([ref])
@@ -156,22 +161,24 @@ def main():
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
         sess.run(tf.tables_initializer())
-        
-        if not os.listdir('./checkpoint/'):
-            saver.restore(sess,  tf.train.latest_checkpoint('./checkpoint/'))
+
+        if tf.train.latest_checkpoint('./checkpoint/'):
+            saver.restore(sess, tf.train.latest_checkpoint('./checkpoint/'))
 
         best_val_bleu = -1.
         for i in range(config_data.num_epochs):
             _train_epoch(sess)
-            val_bleu = _eval_epoch(sess, 'val', i)
-            if val_bleu > best_val_bleu:
-                saver_best.save(sess, './best_model/')
-            best_val_bleu = max(best_val_bleu, val_bleu)
-            print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
-                i, val_bleu, best_val_bleu))
 
-            test_bleu = _eval_epoch(sess, 'test',-1)
-            print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
+            if i % 5 == 0:
+                val_bleu = _eval_epoch(sess, 'val', i)
+                if val_bleu > best_val_bleu:
+                    saver_best.save(sess, './best_model/')
+                best_val_bleu = max(best_val_bleu, val_bleu)
+                print('val epoch={}, BLEU={:.4f}; best-ever={:.4f}'.format(
+                    i, val_bleu, best_val_bleu))
+
+            #test_bleu = _eval_epoch(sess, 'test', -1)
+            #print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
 
             print('=' * 50)
 
