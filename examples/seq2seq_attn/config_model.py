@@ -40,7 +40,7 @@ opt = {
     'optimizer': {
         'type':  'AdamOptimizer',
         'kwargs': {
-            'learning_rate': 0.001,
+            'learning_rate': 0.0001, #0.001
         },
     },
     "gradient_clip": {

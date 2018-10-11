@@ -180,7 +180,7 @@ def main():
 
         best_val_bleu = -1.
         for i in range(config_data.num_epochs):
-            #_train_epoch(sess)
+            _train_epoch(sess)
 
             val_bleu = _eval_epoch(sess, 'val', i)
             if val_bleu > best_val_bleu:

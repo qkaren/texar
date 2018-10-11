@@ -13,7 +13,7 @@ target_vocab_file = data_path + '/vocab.txt'
 #target_vocab_file = data_path + '/vocab'
 
 train = {
-    'batch_size': 32,
+    'batch_size': 64,
     'allow_smaller_final_batch': False,
     'source_dataset': {
         "files": data_path + '/train.query',
@@ -29,7 +29,7 @@ train = {
     }
 }
 val = {
-    'batch_size': 32,
+    'batch_size': 64,
     'shuffle': False,
     'source_dataset': {
         "files": data_path + '/dev.query',
@@ -43,7 +43,7 @@ val = {
     }
 }
 test = {
-    'batch_size': 32,
+    'batch_size': 64,
     'shuffle': False,
     'source_dataset': {
         "files": data_path + '/test.query',
