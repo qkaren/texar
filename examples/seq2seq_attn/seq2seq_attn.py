@@ -19,10 +19,10 @@ from __future__ import division
 
 #pylint: disable=invalid-name, too-many-arguments, too-many-locals
 
+import os
 import importlib
 import tensorflow as tf
 import texar as tx
-import os
 
 from texar.utils import str_join
 
@@ -71,16 +71,24 @@ def build_model(batch, train_data):
 
     start_tokens = tf.ones_like(batch['target_length']) * \
             train_data.target_vocab.bos_token_id
-    beam_search_outputs, _, _ = \
-        tx.modules.beam_search_decode(
-            decoder_or_cell=decoder,
-            embedding=target_embedder,
-            start_tokens=start_tokens,
-            end_token=train_data.target_vocab.eos_token_id,
-            beam_width=config_model.beam_width,
-            max_decoding_length=60)
+    #beam_search_outputs, _, _ = \
+    #    tx.modules.beam_search_decode(
+    #        decoder_or_cell=decoder,
+    #        embedding=target_embedder,
+    #        start_tokens=start_tokens,
+    #        end_token=train_data.target_vocab.eos_token_id,
+    #        beam_width=config_model.beam_width,
+    #        max_decoding_length=60)
+    #
+    #return train_op, beam_search_outputs
 
-    return train_op, beam_search_outputs
+    infer_outputs, _, _ = decoder(
+        decoding_strategy="infer_greedy",
+        embedding=target_embedder,
+        start_tokens=start_tokens,
+        end_token=train_data.target_vocab.eos_token_id,
+        max_decoding_length=60)
+    return train_op, infer_outputs
 
 
 def main():
@@ -123,7 +131,8 @@ def main():
             try:
                 fetches = [
                     batch['target_text'][:, 1:],
-                    infer_outputs.predicted_ids[:, :, 0]
+                    #infer_outputs.predicted_ids[:, :, 0]
+                    infer_outputs.sample_id
                 ]
                 feed_dict = {
                     tx.global_mode(): tf.estimator.ModeKeys.EVAL
@@ -131,11 +140,11 @@ def main():
                 target_texts_ori, output_ids = \
                     sess.run(fetches, feed_dict=feed_dict)
 
-
                 #print(output_ids)
                 #print(infer_outputs.predicted_ids)
 
-                target_texts = tx.utils.strip_special_tokens(target_texts_ori)
+                target_texts = tx.utils.strip_special_tokens(
+                    target_texts_ori.tolist(), is_token_list=True)
                 target_texts = str_join(target_texts)
                 output_texts = tx.utils.map_ids_to_strs(
                     ids=output_ids, vocab=val_data.target_vocab)
@@ -181,7 +190,6 @@ def main():
             #print('test epoch={}, BLEU={:.4f}'.format(i, test_bleu))
 
             print('=' * 50)
-
 
 
 if __name__ == '__main__':
