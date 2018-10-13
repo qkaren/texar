@@ -54,11 +54,14 @@ def main():
     """Entrypoint.
     """
     # Load data
+    print('Loading data ...')
     train_data, dev_data, test_data = data_utils.load_data_numpy(
         config_data.input_dir, config_data.filename_prefix)
+    print('Load data done')
     with open(config_data.vocab_file, 'rb') as f:
         id2w = pickle.load(f)
     vocab_size = len(id2w)
+    print('vocab_size {}'.format(vocab_size))
     bos_token_id, eos_token_id = 1, 2
 
     beam_width = config_model.beam_width
@@ -158,6 +161,7 @@ def main():
         references, hypotheses = [], []
         bsize = config_data.test_batch_size
         for i in range(0, len(eval_data), bsize):
+            #print("eval {}/{}".format(i, len(eval_data)))
             sources, targets = zip(*eval_data[i:i+bsize])
             x_block = data_utils.source_pad_concat_convert(sources)
             feed_dict = {
