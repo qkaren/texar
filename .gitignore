@@ -248,6 +248,9 @@ simple-examples.tgz
 /examples/vae_text/simple-examples/
 /examples/vae_text/data/
 /examples/transformer/data/*
-/examples/transformer1/*
 /examples/transformer/temp/
 /examples/transformer/outputs/
+/examples/transformer1/*
+/examples/chat/data/*
+/examples/chat/temp/
+/examples/chat/outputs/
