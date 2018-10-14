@@ -105,6 +105,7 @@ def main():
                                   sequence_length=fact_encoder_input_length)
 
     encoder_output = fact_encoder_output
+    encoder_output_length = fact_encoder_input_length
 
     # The decoder ties the input word embedding with the output logit layer.
     # As the decoder masks out <PAD>'s embedding, which in effect means
@@ -117,7 +118,7 @@ def main():
     # For training
     outputs = decoder(
         memory=encoder_output,
-        memory_sequence_length=encoder_input_length,
+        memory_sequence_length=encoder_output_length,
         inputs=embedder(decoder_input),
         sequence_length=decoder_input_length,
         decoding_strategy='train_greedy',
@@ -143,7 +144,7 @@ def main():
                            bos_token_id)
     predictions = decoder(
         memory=encoder_output,
-        memory_sequence_length=encoder_input_length,
+        memory_sequence_length=encoder_output_length,
         decoding_strategy='infer_greedy',
         beam_width=beam_width,
         alpha=config_model.alpha,

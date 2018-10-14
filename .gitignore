@@ -250,7 +250,9 @@ simple-examples.tgz
 /examples/transformer/data/*
 /examples/transformer/temp/
 /examples/transformer/outputs/
+/examples/transformer/outputs*
 /examples/transformer1/*
 /examples/chat/data/*
 /examples/chat/temp/
 /examples/chat/outputs/
+/examples/chat/outputs*

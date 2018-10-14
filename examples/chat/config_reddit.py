@@ -1,5 +1,5 @@
 batch_size = 4000 #256
-test_batch_size = 8
+test_batch_size = 4
 
 max_train_epoch = 100
 display_steps = 200
