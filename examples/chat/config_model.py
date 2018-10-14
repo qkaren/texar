@@ -22,7 +22,7 @@ emb = {
 
 encoder = {
     'dim': hidden_dim,
-    'num_blocks': 3,
+    'num_blocks': 1,
     'initializer': {
         'type': 'variance_scaling_initializer',
         'kwargs': {

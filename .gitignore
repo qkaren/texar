@@ -227,7 +227,10 @@ simple-examples.tgz
 /examples/sequence_tagging/tmp/
 /examples/sentence_classifier/data/
 /examples/seq2seq_attn/data/
-/examples/seq2seq_attn1/*
+/examples/seq2seq_attn1/
+/examples/seq2seq_attn2/
+/examples/seq2seq_attn3/
+/examples/chat1/
 /examples/seq2seq_attn/checkpoint/*
 /examples/seq2seq_attn/best_model/*
 /examples/seq2seq_attn/data.zip
