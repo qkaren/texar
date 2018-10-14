@@ -1,14 +1,24 @@
 # Attentional Seq2seq model.
 # Hyperparameters not specified here will take the default values.
 
-num_units = 512 #256
+num_units = 1000
 beam_width = 10
 
 embedder = {
     'dim': num_units
 }
 encoder = {
-    'rnn_cell_fw': {
+    #'rnn_cell_fw': {
+    #    'kwargs': {
+    #        'num_units': num_units
+    #    },
+    #    'num_layers': 2,
+    #    #'dropout': {
+    #    #    'input_keep_prob': 0.5
+    #    #}
+    #}
+    'rnn_cell': {
+        'type': 'GRUCell',
         'kwargs': {
             'num_units': num_units
         },
@@ -20,6 +30,7 @@ encoder = {
 }
 decoder = {
     'rnn_cell': {
+        'type': 'GRUCell',
         'kwargs': {
             'num_units': num_units
         },
@@ -40,7 +51,7 @@ opt = {
     'optimizer': {
         'type':  'AdamOptimizer',
         'kwargs': {
-            'learning_rate': 0.0001, #0.001
+            'learning_rate': 0.0005 #0.001
         },
     },
     "gradient_clip": {
