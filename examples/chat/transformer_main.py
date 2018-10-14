@@ -175,6 +175,8 @@ def main():
         bsize = config_data.test_batch_size
         for i in range(0, len(eval_data), bsize):
             sources, targets, facts = zip(*eval_data[i:i+bsize])
+            print(sources)
+            print(facts)
             x_block = data_utils.source_pad_concat_convert(sources)
             f_block = data_utils.source_pad_concat_convert(facts)
 

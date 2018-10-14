@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
     valid_data = [(s, t, f) for s, t, f in zip(source_data, target_data, fact_data)
                   if s and t and f]
-    valid_npy = [(s, t, f) for s, t, f in zip(source_npy, target_npy, fact_data)
+    valid_npy = [(s, t, f) for s, t, f in zip(source_npy, target_npy, fact_npy)
                  if len(s) > 0 and len(t) > 0 and len(f) > 0]
     assert len(valid_data) == len(valid_npy)
     print('Original dev data size: %d' % len(source_data))
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     assert len(source_data) == len(fact_data)
     test_data = [(s, t, f) for s, t, f in zip(source_data, target_data, fact_data)
                  if s and t and f]
-    test_npy = [(s, t, f) for s, t, f in zip(source_npy, target_npy, fact_data)
+    test_npy = [(s, t, f) for s, t, f in zip(source_npy, target_npy, fact_npy)
                 if len(s)>0 and len(t)>0 and len(f)>0]
     print('Original test data size: %d' % len(source_data))
     print('Filtered test data size: %d' % len(test_data))
