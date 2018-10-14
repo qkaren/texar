@@ -227,7 +227,10 @@ simple-examples.tgz
 /examples/sequence_tagging/tmp/
 /examples/sentence_classifier/data/
 /examples/seq2seq_attn/data/
-/examples/seq2seq_attn1/*
+/examples/seq2seq_attn1/
+/examples/seq2seq_attn2/
+/examples/seq2seq_attn3/
+/examples/chat1/
 /examples/seq2seq_attn/checkpoint/*
 /examples/seq2seq_attn/best_model/*
 /examples/seq2seq_attn/data.zip
@@ -248,6 +251,11 @@ simple-examples.tgz
 /examples/vae_text/simple-examples/
 /examples/vae_text/data/
 /examples/transformer/data/*
-/examples/transformer1/*
 /examples/transformer/temp/
 /examples/transformer/outputs/
+/examples/transformer/outputs*
+/examples/transformer1/*
+/examples/chat/data/*
+/examples/chat/temp/
+/examples/chat/outputs/
+/examples/chat/outputs*

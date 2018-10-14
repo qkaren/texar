@@ -5,7 +5,7 @@ display = 100
 #data_path = '../transformer/data/tf_data'
 #
 #data_path = '/home/hzt/qin/msr_texar/data/'
-data_path = '/space/hzt/msr_dialog/data/'
+#data_path = '/space/hzt/msr_dialog/data/'
 source_vocab_file = data_path + '/vocab.txt'
 target_vocab_file = data_path + '/vocab.txt'
 #data_path = '/home/hzt/qin/msr_texar/texar/examples/text_style_transfer/data/yelp/'

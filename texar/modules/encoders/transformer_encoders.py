@@ -37,7 +37,7 @@ __all__ = [
     "TransformerEncoder"
 ]
 
-def default_transformer_poswise_net_hparams():
+def default_transformer_poswise_net_hparams(output_dim=512):
     """Returns default hyperparameters of a
     :class:`~texar.modules.FeedForwardNetwork` as a pos-wise network used
     in :class:`~texar.modules.TransformerEncoder` and
@@ -88,18 +88,18 @@ def default_transformer_poswise_net_hparams():
                 }
             },
             {
-                "type":"Dropout",
+                "type": "Dropout",
                 "kwargs": {
                     "rate": 0.1,
                 }
             },
             {
-                "type":"Dense",
+                "type": "Dense",
                 "kwargs": {
-                    "name":"conv2",
-                    "units":512,
-                    "use_bias":True,
-                    }
+                    "name": "conv2",
+                    "units": output_dim,
+                    "use_bias": True,
+                }
             }
         ],
         "name": "ffn"
