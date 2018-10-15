@@ -79,7 +79,7 @@ def main():
     encoder_shape = tf.shape(encoder_input)
     decoder_shape = tf.shape(decoder_input)
     fact_shape = tf.shape(fact_input)
-    
+
     # (text sequence length excluding padding)
     encoder_input_length = tf.reduce_sum(
         1 - tf.to_int32(tf.equal(encoder_input, 0)), axis=1)
@@ -179,8 +179,6 @@ def main():
         bsize = config_data.test_batch_size
         for i in range(0, len(eval_data), bsize):
             sources, targets, facts = zip(*eval_data[i:i+bsize])
-            print(sources)
-            print(facts)
             x_block = data_utils.source_pad_concat_convert(sources)
             f_block = data_utils.source_pad_concat_convert(facts)
 
