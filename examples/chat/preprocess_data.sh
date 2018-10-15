@@ -36,8 +36,8 @@ tgt_language=$3
 fact_language=$4
 
 # update these variables
-data=${TF}"/data/${src_language}_${tgt_language}"
-#data="/space/hzt/msr_dialog/data/"
+#data=${TF}"/data/${src_language}_${tgt_language}"
+data="/space/hzt/msr_dialog/data/"
 name="run_${src_language}_${tgt_language}_${encoder}"
 out="temp/${name}"
 
