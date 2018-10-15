@@ -94,75 +94,78 @@ def main():
     global_step = tf.Variable(0, dtype=tf.int64, trainable=False)
     learning_rate = tf.placeholder(tf.float64, shape=(), name='lr')
 
-    embedder = tx.modules.WordEmbedder(
-        vocab_size=vocab_size, hparams=config_model.emb)
-    encoder = TransformerEncoder(hparams=config_model.encoder)
+    with tf.device('/cpu:0'):
+        embedder = tx.modules.WordEmbedder(
+            vocab_size=vocab_size, hparams=config_model.emb)
+        encoder_input_emb = embedder(encoder_input)
+        fact_input_emb = embedder(fact_input)
 
-    query_encoder_output = encoder(inputs=embedder(encoder_input),
-                                   sequence_length=encoder_input_length)
+    with tf.device('/device:GPU:1'):
+        encoder = TransformerEncoder(hparams=config_model.encoder)
+        query_encoder_output = encoder(inputs=encoder_input_emb,
+                                 sequence_length=encoder_input_length)
 
-    # TODO(1013): added fact encoder
-    fact_encoder = TransformerEncoder(hparams=config_model.encoder)
-    fact_encoder_input = tf.concat([query_encoder_output, embedder(fact_input)], axis=1)
-    fact_encoder_input_length = fact_input_length + tf.shape(query_encoder_output)[1]
-    fact_encoder_output = encoder(inputs=fact_encoder_input,
-                                  sequence_length=fact_encoder_input_length)
+        # TODO(1013): added fact encoder
+        fact_encoder = TransformerEncoder(hparams=config_model.encoder)
+        fact_encoder_input = tf.concat([query_encoder_output, fact_input_emb], axis=1)
+        fact_encoder_input_length = fact_input_length + tf.shape(query_encoder_output)[1]
+        fact_encoder_output = encoder(inputs=fact_encoder_input,
+                                      sequence_length=fact_encoder_input_length)
 
-    encoder_output = fact_encoder_output
-    encoder_output_length = fact_encoder_input_length
+        encoder_output = fact_encoder_output
+        encoder_output_length = fact_encoder_input_length
 
-    # The decoder ties the input word embedding with the output logit layer.
-    # As the decoder masks out <PAD>'s embedding, which in effect means
-    # <PAD> has all-zero embedding, so here we explicitly set <PAD>'s embedding
-    # to all-zero.
-    tgt_embedding = tf.concat(
-        [tf.zeros(shape=[1, embedder.dim]), embedder.embedding[1:, :]], axis=0)
-    decoder = TransformerDecoder(embedding=tgt_embedding,
-                                 hparams=config_model.decoder)
-    # For training
-    outputs = decoder(
-        memory=encoder_output,
-        memory_sequence_length=encoder_output_length,
-        inputs=embedder(decoder_input),
-        sequence_length=decoder_input_length,
-        decoding_strategy='train_greedy',
-        mode=tf.estimator.ModeKeys.TRAIN
-    )
+        # The decoder ties the input word embedding with the output logit layer.
+        # As the decoder masks out <PAD>'s embedding, which in effect means
+        # <PAD> has all-zero embedding, so here we explicitly set <PAD>'s embedding
+        # to all-zero.
+        tgt_embedding = tf.concat(
+            [tf.zeros(shape=[1, embedder.dim]), embedder.embedding[1:, :]], axis=0)
+        decoder = TransformerDecoder(embedding=tgt_embedding,
+                                     hparams=config_model.decoder)
+        # For training
+        outputs = decoder(
+            memory=encoder_output,
+            memory_sequence_length=encoder_output_length,
+            inputs=embedder(decoder_input),
+            sequence_length=decoder_input_length,
+            decoding_strategy='train_greedy',
+            mode=tf.estimator.ModeKeys.TRAIN
+        )
 
-    mle_loss = transformer_utils.smoothing_cross_entropy(
-        outputs.logits, labels, vocab_size, config_model.loss_label_confidence)
-    mle_loss = tf.reduce_sum(mle_loss * is_target) / tf.reduce_sum(is_target)
+        mle_loss = transformer_utils.smoothing_cross_entropy(
+            outputs.logits, labels, vocab_size, config_model.loss_label_confidence)
+        mle_loss = tf.reduce_sum(mle_loss * is_target) / tf.reduce_sum(is_target)
 
-    train_op = tx.core.get_train_op(
-        mle_loss,
-        learning_rate=learning_rate,
-        global_step=global_step,
-        hparams=config_model.opt)
+        train_op = tx.core.get_train_op(
+            mle_loss,
+            learning_rate=learning_rate,
+            global_step=global_step,
+            hparams=config_model.opt)
 
-    tf.summary.scalar('lr', learning_rate)
-    tf.summary.scalar('mle_loss', mle_loss)
-    summary_merged = tf.summary.merge_all()
+        tf.summary.scalar('lr', learning_rate)
+        tf.summary.scalar('mle_loss', mle_loss)
+        summary_merged = tf.summary.merge_all()
 
-    # For inference
-    start_tokens = tf.fill([tx.utils.get_batch_size(encoder_input)],
-                           bos_token_id)
-    predictions = decoder(
-        memory=encoder_output,
-        memory_sequence_length=encoder_output_length,
-        decoding_strategy='infer_greedy',
-        beam_width=beam_width,
-        alpha=config_model.alpha,
-        start_tokens=start_tokens,
-        end_token=eos_token_id,
-        max_decoding_length=config_data.max_decoding_length,
-        mode=tf.estimator.ModeKeys.PREDICT
-    )
-    if beam_width <= 1:
-        inferred_ids = predictions[0].sample_id
-    else:
-        # Uses the best sample by beam search
-        inferred_ids = predictions['sample_id'][:, :, 0]
-
+        # For inference
+        start_tokens = tf.fill([tx.utils.get_batch_size(encoder_input)],
+                               bos_token_id)
+        predictions = decoder(
+            memory=encoder_output,
+            memory_sequence_length=encoder_output_length,
+            decoding_strategy='infer_greedy',
+            beam_width=beam_width,
+            alpha=config_model.alpha,
+            start_tokens=start_tokens,
+            end_token=eos_token_id,
+            max_decoding_length=config_data.max_decoding_length,
+            mode=tf.estimator.ModeKeys.PREDICT
+        )
+        if beam_width <= 1:
+            inferred_ids = predictions[0].sample_id
+        else:
+            # Uses the best sample by beam search
+            inferred_ids = predictions['sample_id'][:, :, 0]
 
     saver = tf.train.Saver(max_to_keep=5)
     best_results = {'score': 0, 'epoch': -1}
@@ -281,7 +284,10 @@ def main():
         return step
 
     # Run the graph
-    with tf.Session() as sess:
+    #with tf.Session() as sess:
+    sess_config = tf.ConfigProto(
+        allow_soft_placement=False, log_device_placement=True)
+    with tf.Session(config=sess_config) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
         sess.run(tf.tables_initializer())
