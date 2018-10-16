@@ -35,7 +35,8 @@ src_language=$2
 tgt_language=$3
 
 # update these variables
-data=${TF}"/data/${src_language}_${tgt_language}"
+#data=${TF}"/data/${src_language}_${tgt_language}"
+data="/space/hzt/msr_dialog/data/"
 name="run_${src_language}_${tgt_language}_${encoder}"
 out="temp/${name}"
 
@@ -45,7 +46,8 @@ valid_src=$data/dev.${src_language}
 valid_tgt=$data/dev.${tgt_language}
 test_src=$data/test.${src_language}
 test_tgt=$data/test.${tgt_language}
-vocab_size=32000
+#vocab_size=32000
+vocab_size=30000
 
 #====== EXPERIMENT BEGIN ======
 echo "Output dir = $out"
@@ -81,5 +83,5 @@ python ${TF}/utils/preprocess.py -i ${out}/data \
     --src ${src_language}.${encoder} \
     --tgt ${tgt_language}.${encoder} \
     --save_data processed. \
-    --max_seq_length=70 \
+    --max_seq_length=200 \
     --pre_encoding=${encoder}

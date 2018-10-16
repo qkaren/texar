@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import copy
 import pickle
 import random
 import os
@@ -76,18 +75,11 @@ def main():
     # Build model graph
     encoder_input = tf.placeholder(tf.int64, shape=(None, None))
     decoder_input = tf.placeholder(tf.int64, shape=(None, None))
-    fact_input = tf.placeholder(tf.int64, shape=(None, None))
-    encoder_shape = tf.shape(encoder_input)
-    decoder_shape = tf.shape(decoder_input)
-    fact_shape = tf.shape(fact_input)
-
     # (text sequence length excluding padding)
     encoder_input_length = tf.reduce_sum(
         1 - tf.to_int32(tf.equal(encoder_input, 0)), axis=1)
     decoder_input_length = tf.reduce_sum(
         1 - tf.to_int32(tf.equal(decoder_input, 0)), axis=1)
-    fact_input_length = tf.reduce_sum(
-        1 - tf.to_int32(tf.equal(fact_input, 0)), axis=1)
 
     labels = tf.placeholder(tf.int64, shape=(None, None))
     is_target = tf.to_float(tf.not_equal(labels, 0))
@@ -99,27 +91,12 @@ def main():
         embedder = tx.modules.WordEmbedder(
             vocab_size=vocab_size, hparams=config_model.emb)
         encoder_input_emb = embedder(encoder_input)
-        fact_input_emb = embedder(fact_input)
-
-    with tf.device('/device:GPU:0'):
-        query_encoder_hparams = copy.deepcopy(config_model.encoder)
-        query_encoder_hparams['name'] = 'query_encoder'
-        query_encoder = TransformerEncoder(hparams=query_encoder_hparams)
-        query_encoder_output = query_encoder(inputs=encoder_input_emb,
-                                             sequence_length=encoder_input_length)
 
     with tf.device('/device:GPU:1'):
-        # TODO(1013): added fact encoder
-        fact_encoder_hparams = copy.deepcopy(config_model.encoder)
-        fact_encoder_hparams['name'] = 'fact_encoder'
-        fact_encoder = TransformerEncoder(hparams=fact_encoder_hparams)
-        fact_encoder_input = tf.concat([query_encoder_output, fact_input_emb], axis=1)
-        fact_encoder_input_length = fact_input_length + tf.shape(query_encoder_output)[1]
-        fact_encoder_output = fact_encoder(inputs=fact_encoder_input,
-                                           sequence_length=fact_encoder_input_length)
+        encoder = TransformerEncoder(hparams=config_model.encoder)
 
-        encoder_output = fact_encoder_output
-        encoder_output_length = fact_encoder_input_length
+        encoder_output = encoder(inputs=encoder_input_emb,
+                                 sequence_length=encoder_input_length)
 
         # The decoder ties the input word embedding with the output logit layer.
         # As the decoder masks out <PAD>'s embedding, which in effect means
@@ -132,7 +109,7 @@ def main():
         # For training
         outputs = decoder(
             memory=encoder_output,
-            memory_sequence_length=encoder_output_length,
+            memory_sequence_length=encoder_input_length,
             inputs=embedder(decoder_input),
             sequence_length=decoder_input_length,
             decoding_strategy='train_greedy',
@@ -143,38 +120,36 @@ def main():
             outputs.logits, labels, vocab_size, config_model.loss_label_confidence)
         mle_loss = tf.reduce_sum(mle_loss * is_target) / tf.reduce_sum(is_target)
 
-    #with tf.device('/device:GPU:1'):
-    with tf.device('/cpu:0'):
-        train_op = tx.core.get_train_op(
-            mle_loss,
-            learning_rate=learning_rate,
-            global_step=global_step,
-            hparams=config_model.opt)
+    train_op = tx.core.get_train_op(
+        mle_loss,
+        learning_rate=learning_rate,
+        global_step=global_step,
+        hparams=config_model.opt)
 
     tf.summary.scalar('lr', learning_rate)
     tf.summary.scalar('mle_loss', mle_loss)
     summary_merged = tf.summary.merge_all()
 
-    with tf.device('/device:GPU:1'):
-        # For inference
-        start_tokens = tf.fill([tx.utils.get_batch_size(encoder_input)],
-                               bos_token_id)
-        predictions = decoder(
-            memory=encoder_output,
-            memory_sequence_length=encoder_output_length,
-            decoding_strategy='infer_greedy',
-            beam_width=beam_width,
-            alpha=config_model.alpha,
-            start_tokens=start_tokens,
-            end_token=eos_token_id,
-            max_decoding_length=config_data.max_decoding_length,
-            mode=tf.estimator.ModeKeys.PREDICT
-        )
-        if beam_width <= 1:
-            inferred_ids = predictions[0].sample_id
-        else:
-            # Uses the best sample by beam search
-            inferred_ids = predictions['sample_id'][:, :, 0]
+    # For inference
+    start_tokens = tf.fill([tx.utils.get_batch_size(encoder_input)],
+                           bos_token_id)
+    predictions = decoder(
+        memory=encoder_output,
+        memory_sequence_length=encoder_input_length,
+        decoding_strategy='infer_greedy',
+        beam_width=beam_width,
+        alpha=config_model.alpha,
+        start_tokens=start_tokens,
+        end_token=eos_token_id,
+        max_decoding_length=config_data.max_decoding_length,
+        mode=tf.estimator.ModeKeys.PREDICT
+    )
+    if beam_width <= 1:
+        inferred_ids = predictions[0].sample_id
+    else:
+        # Uses the best sample by beam search
+        inferred_ids = predictions['sample_id'][:, :, 0]
+
 
     saver = tf.train.Saver(max_to_keep=5)
     best_results = {'score': 0, 'epoch': -1}
@@ -190,19 +165,16 @@ def main():
         references, hypotheses = [], []
         bsize = config_data.test_batch_size
         for i in range(0, len(eval_data), bsize):
-            sources, targets, facts = zip(*eval_data[i:i+bsize])
+            #print("eval {}/{}".format(i, len(eval_data)))
+            sources, targets = zip(*eval_data[i:i+bsize])
             x_block = data_utils.source_pad_concat_convert(sources)
-            f_block = data_utils.source_pad_concat_convert(facts)
-
             feed_dict = {
                 encoder_input: x_block,
-                fact_input: f_block,
                 tx.global_mode(): tf.estimator.ModeKeys.EVAL,
             }
             fetches = {
                 'inferred_ids': inferred_ids,
             }
-
             fetches_ = sess.run(fetches, feed_dict=feed_dict)
 
             hypotheses.extend(h.tolist() for h in fetches_['inferred_ids'])
@@ -266,7 +238,6 @@ def main():
                 encoder_input: in_arrays[0],
                 decoder_input: in_arrays[1],
                 labels: in_arrays[2],
-                fact_input: in_arrays[3],
                 learning_rate: utils.get_lr(step, config_model.lr)
             }
             fetches = {
@@ -274,14 +245,9 @@ def main():
                 'train_op': train_op,
                 'smry': summary_merged,
                 'loss': mle_loss,
-                'encoder_shape': encoder_shape,
-                'decoder_shape': decoder_shape,
-                'fact_shape': fact_shape
             }
 
-            run_options = tf.RunOptions(report_tensor_allocations_upon_oom=True)
-
-            fetches_ = sess.run(fetches, feed_dict=feed_dict, options=run_options)
+            fetches_ = sess.run(fetches, feed_dict=feed_dict)
 
             step, loss = fetches_['step'], fetches_['loss']
             if step and step % config_data.display_steps == 0:
@@ -291,7 +257,6 @@ def main():
 
             if step and step % config_data.eval_steps == 0:
                 _eval_epoch(sess, epoch, mode='eval')
-
         return step
 
     # Run the graph
