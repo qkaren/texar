@@ -3,7 +3,7 @@
 import copy
 import texar as tx
 
-random_seed = 1234
+random_seed = 2018
 beam_width = 5
 alpha = 0.6
 hidden_dim = 512
