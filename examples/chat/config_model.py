@@ -6,7 +6,7 @@ import texar as tx
 random_seed = 1234
 beam_width = 5
 alpha = 0.6
-hidden_dim = 512
+hidden_dim = 256 #512
 
 emb = {
     'name': 'lookup_table',
