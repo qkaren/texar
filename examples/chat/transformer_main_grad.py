@@ -32,6 +32,11 @@ from utils import data_utils
 from utils  import utils
 from bleu_tool import bleu_wrapper
 
+#import memory_saving_gradients
+from memory_saving_gradients import gradients
+
+#tf.__dict__["gradients"] = memory_saving_gradients.gradients_memory
+
 # pylint: disable=invalid-name, too-many-locals
 
 flags = tf.flags
@@ -91,9 +96,6 @@ def main():
     labels = tf.placeholder(tf.int64, shape=(None, None))
     is_target = tf.to_float(tf.not_equal(labels, 0))
 
-    global_step = tf.Variable(0, dtype=tf.int64, trainable=False)
-    learning_rate = tf.placeholder(tf.float64, shape=(), name='lr')
-
     embedder = tx.modules.WordEmbedder(
         vocab_size=vocab_size, hparams=config_model.emb)
     encoder = TransformerEncoder(hparams=config_model.encoder)
@@ -105,8 +107,8 @@ def main():
     fact_encoder = TransformerEncoder(hparams=config_model.encoder)
     fact_encoder_input = tf.concat([query_encoder_output, embedder(fact_input)], axis=1)
     fact_encoder_input_length = fact_input_length + tf.shape(query_encoder_output)[1]
-    fact_encoder_output = fact_encoder(inputs=fact_encoder_input,
-                                       sequence_length=fact_encoder_input_length)
+    fact_encoder_output = encoder(inputs=fact_encoder_input,
+                                  sequence_length=fact_encoder_input_length)
 
     encoder_output = fact_encoder_output
     encoder_output_length = fact_encoder_input_length
@@ -133,11 +135,27 @@ def main():
         outputs.logits, labels, vocab_size, config_model.loss_label_confidence)
     mle_loss = tf.reduce_sum(mle_loss * is_target) / tf.reduce_sum(is_target)
 
-    train_op = tx.core.get_train_op(
-        mle_loss,
-        learning_rate=learning_rate,
-        global_step=global_step,
-        hparams=config_model.opt)
+    global_step = tf.Variable(0, dtype=tf.int64, trainable=False)
+    learning_rate = tf.placeholder(tf.float64, shape=(), name='lr')
+
+    optim = tf.train.AdamOptimizer(
+        learning_rate,
+        beta1=config_model.opt['optimizer']['kwargs']['beta1'],
+        beta2=config_model.opt['optimizer']['kwargs']['beta2'],
+        epsilon=config_model.opt['optimizer']['kwargs']['epsilon'])
+
+    trainable_vars = tf.trainable_variables()
+    grads = tf.gradients(mle_loss, trainable_vars)
+    #grads = gradients(mle_loss, trainable_vars, checkpoints='memory')
+    train_op = optim.apply_gradients(
+        zip(grads, trainable_vars),
+        global_step=global_step)
+
+    #train_op = tx.core.get_train_op(
+    #    mle_loss,
+    #    learning_rate=learning_rate,
+    #    global_step=global_step,
+    #    hparams=config_model.opt)
 
     tf.summary.scalar('lr', learning_rate)
     tf.summary.scalar('mle_loss', mle_loss)
@@ -267,7 +285,9 @@ def main():
                 'fact_shape': fact_shape
             }
 
-            fetches_ = sess.run(fetches, feed_dict=feed_dict)
+            run_options = tf.RunOptions(report_tensor_allocations_upon_oom=True)
+
+            fetches_ = sess.run(fetches, feed_dict=feed_dict, options=run_options)
 
             step, loss = fetches_['step'], fetches_['loss']
             if step and step % config_data.display_steps == 0:

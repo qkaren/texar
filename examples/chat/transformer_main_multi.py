@@ -43,6 +43,8 @@ flags.DEFINE_string("run_mode", "train_and_evaluate",
                     "Either train_and_evaluate or test.")
 flags.DEFINE_string("model_dir", "./outputs",
                     "Directory to save the trained model and logs.")
+flags.DEFINE_string("restore_dir", "",
+                    "The directoary containing model checkpoint to restore.")
 
 FLAGS = flags.FLAGS
 
@@ -95,20 +97,20 @@ def main():
     global_step = tf.Variable(0, dtype=tf.int64, trainable=False)
     learning_rate = tf.placeholder(tf.float64, shape=(), name='lr')
 
-    with tf.device('/cpu:0'):
+    with tf.device('/device:GPU:0'):
         embedder = tx.modules.WordEmbedder(
             vocab_size=vocab_size, hparams=config_model.emb)
         encoder_input_emb = embedder(encoder_input)
         fact_input_emb = embedder(fact_input)
 
-    with tf.device('/device:GPU:0'):
+    with tf.device('/device:GPU:1'):
         query_encoder_hparams = copy.deepcopy(config_model.encoder)
         query_encoder_hparams['name'] = 'query_encoder'
         query_encoder = TransformerEncoder(hparams=query_encoder_hparams)
         query_encoder_output = query_encoder(inputs=encoder_input_emb,
                                              sequence_length=encoder_input_length)
 
-    with tf.device('/device:GPU:1'):
+    with tf.device('/device:GPU:2'):
         # TODO(1013): added fact encoder
         fact_encoder_hparams = copy.deepcopy(config_model.encoder)
         fact_encoder_hparams['name'] = 'fact_encoder'
@@ -121,6 +123,8 @@ def main():
         encoder_output = fact_encoder_output
         encoder_output_length = fact_encoder_input_length
 
+    with tf.device('/device:GPU:3'):
+        # TODO(1013): added fact encoder
         # The decoder ties the input word embedding with the output logit layer.
         # As the decoder masks out <PAD>'s embedding, which in effect means
         # <PAD> has all-zero embedding, so here we explicitly set <PAD>'s embedding
@@ -155,7 +159,7 @@ def main():
     tf.summary.scalar('mle_loss', mle_loss)
     summary_merged = tf.summary.merge_all()
 
-    with tf.device('/device:GPU:1'):
+    with tf.device('/device:GPU:3'):
         # For inference
         start_tokens = tf.fill([tx.utils.get_batch_size(encoder_input)],
                                bos_token_id)
@@ -306,6 +310,10 @@ def main():
         smry_writer = tf.summary.FileWriter(FLAGS.model_dir, graph=sess.graph)
 
         if FLAGS.run_mode == 'train_and_evaluate':
+            if FLAGS.restore_dir != '':
+                print('Restore from {}'.format(tf.train.latest_checkpoint(FLAGS.restore_dir)))
+                saver.restore(sess, tf.train.latest_checkpoint(FLAGS.restore_dir))
+
             step = 0
             for epoch in range(config_data.max_train_epoch):
                 step = _train_epoch(sess, epoch, step, smry_writer)

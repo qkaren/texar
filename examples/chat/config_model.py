@@ -3,7 +3,7 @@
 import copy
 import texar as tx
 
-random_seed = 1234
+random_seed = 2018
 beam_width = 5
 alpha = 0.6
 hidden_dim = 256 #512
@@ -22,9 +22,9 @@ emb = {
 
 encoder = {
     'dim': hidden_dim,
-    'num_blocks': 2, #3
-    'num_heads': 4,
-    #'attention_dropout': 0,
+    'num_blocks': 1, #3
+    'num_heads': 2,
+    #'attention_dropout': 0, #TODO
     'initializer': {
         'type': 'variance_scaling_initializer',
         'kwargs': {
