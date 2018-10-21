@@ -165,7 +165,7 @@ def main():
 
 
     saver = tf.train.Saver(max_to_keep=5)
-    best_results = {'score': 0, 'epoch': -1}
+    best_results = {'score': 0, 'epoch': -1, 'eval_loss': 7, 'step': 1}
 
     def _eval_epoch(sess, epoch, mode):
         if mode == 'eval':
@@ -189,6 +189,8 @@ def main():
             }
             fetches = {
                 'inferred_ids': inferred_ids,
+                'step': global_step,
+                'loss': mle_loss
             }
 
             fetches_ = sess.run(fetches, feed_dict=feed_dict)
@@ -213,11 +215,27 @@ def main():
             logger.info('epoch: %d, eval_bleu %.4f', epoch, eval_bleu)
             print('epoch: %d, eval_bleu %.4f' % (epoch, eval_bleu))
 
+            step, eval_loss = fetches_['step'], fetches_['loss']
+            model_path = os.path.join(FLAGS.model_dir, 'best-loss-model.ckpt')
+            logger.info('saving model to %s', model_path)
+            print('saving model to %s' % model_path)
+            saver.save(sess, model_path)
+
+
+            if eval_loss < best_results['loss']:
+                logger.info('step: %d, min loss %.4f', step, eval_loss)
+                best_results['eval_loss'] = eval_loss
+                best_results['step'] = step
+                model_path = os.path.join(FLAGS.model_dir, 'best-loss-model.ckpt')
+                logger.info('saving model to %s', model_path)
+                print('saving model to %s' % model_path)
+                saver.save(sess, model_path)
+
             if eval_bleu > best_results['score']:
                 logger.info('epoch: %d, best bleu: %.4f', epoch, eval_bleu)
                 best_results['score'] = eval_bleu
                 best_results['epoch'] = epoch
-                model_path = os.path.join(FLAGS.model_dir, 'best-model.ckpt')
+                model_path = os.path.join(FLAGS.model_dir, 'best-bleu-model.ckpt')
                 logger.info('saving model to %s', model_path)
                 print('saving model to %s' % model_path)
                 saver.save(sess, model_path)
