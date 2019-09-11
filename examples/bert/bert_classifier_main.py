@@ -172,7 +172,7 @@ def main(_):
 
     opt = tx.core.get_optimizer(
         global_step=global_step,
-        learning_rate=lr,
+        learning_rate=2e-5,
         hparams=config_downstream.opt
     )
 
